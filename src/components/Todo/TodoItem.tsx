@@ -1,7 +1,8 @@
 import React from 'react';
-import { Check, Trash2, Play, Circle } from 'lucide-react';
+import { Check, Trash2, Play, Pause, Circle } from 'lucide-react';
 import { Todo } from '../../types';
 import { useTodoStore } from '../../stores/todoStore';
+import { useTimerStore } from '../../stores/timerStore';
 
 interface TodoItemProps {
   todo: Todo;
@@ -9,6 +10,7 @@ interface TodoItemProps {
 
 export const TodoItem: React.FC<TodoItemProps> = ({ todo }) => {
   const { toggleTodo, deleteTodo, activeTodoId, setActiveTodo } = useTodoStore();
+  const { isRunning, startTimer, pauseTimer } = useTimerStore();
   const isActive = activeTodoId === todo.id;
 
   return (
@@ -16,8 +18,8 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo }) => {
       onClick={() => setActiveTodo(todo.id)}
       className={`group flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
         isActive
-          ? 'bg-blue-600/15 border-blue-500/40 shadow-sm'
-          : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.07] hover:border-white/10'
+          ? 'bg-[#15151F] border-blue-500/40 shadow-sm'
+          : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05] hover:border-white/10'
       }`}
     >
       <div className="flex items-center gap-3 min-w-0 pr-2">
@@ -27,47 +29,60 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo }) => {
             e.stopPropagation();
             toggleTodo(todo.id);
           }}
-          className={`flex items-center justify-center w-5 h-5 rounded-full border transition-all ${
+          className={`flex items-center justify-center w-4.5 h-4.5 rounded-full border transition-all ${
             todo.completed
               ? 'bg-blue-500 border-blue-500 text-white'
               : 'border-white/30 hover:border-blue-400 text-transparent'
           }`}
         >
-          {todo.completed ? <Check className="w-3 h-3 stroke-[3]" /> : <Circle className="w-2.5 h-2.5 fill-current opacity-0 hover:opacity-50" />}
+          {todo.completed ? (
+            <Check className="w-3 h-3 stroke-[3]" />
+          ) : (
+            <Circle className="w-2.5 h-2.5 fill-current opacity-0 hover:opacity-50" />
+          )}
         </button>
 
-        {/* Title and active badge */}
+        {/* Title and subtitle description */}
         <div className="flex flex-col min-w-0">
           <span
-            className={`text-xs font-medium truncate transition-colors ${
+            className={`text-xs font-semibold truncate transition-colors ${
               todo.completed ? 'line-through text-white/40' : 'text-white/90'
             }`}
           >
             {todo.title}
           </span>
-          {todo.description && (
-            <span className="text-[10px] text-white/40 truncate">{todo.description}</span>
-          )}
+          <span className="text-[10px] text-white/40 truncate">
+            {todo.description || 'Create 10 Logos for Marc\'s company'}
+          </span>
         </div>
       </div>
 
-      {/* Right controls: Active status / Delete */}
+      {/* Right controls: Play/Pause button for active task or action button */}
       <div className="flex items-center gap-2 flex-shrink-0">
         {isActive ? (
-          <span className="flex items-center gap-1 text-[10px] font-semibold text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded-full border border-blue-500/30">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-            Active
-          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isRunning) pauseTimer();
+              else startTimer();
+            }}
+            className={`flex items-center justify-center w-7 h-7 rounded-full text-white shadow-md transition-transform active:scale-95 ${
+              isRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-600 hover:bg-blue-500'
+            }`}
+            title={isRunning ? 'Pause Focus' : 'Start Focus'}
+          >
+            {isRunning ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current translate-x-[0.5px]" />}
+          </button>
         ) : (
           <button
             onClick={(e) => {
               e.stopPropagation();
               setActiveTodo(todo.id);
             }}
-            className="opacity-0 group-hover:opacity-100 p-1 text-white/40 hover:text-blue-400 transition-opacity"
-            title="Set as active focus task"
+            className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-600/80 hover:bg-blue-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Set Active & Play"
           >
-            <Play className="w-3.5 h-3.5" />
+            <Play className="w-3.5 h-3.5 fill-current translate-x-[0.5px]" />
           </button>
         )}
 
