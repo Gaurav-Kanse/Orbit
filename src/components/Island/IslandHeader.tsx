@@ -9,7 +9,7 @@ export const IslandHeader: React.FC = () => {
   const { todos, activeTodoId } = useTodoStore();
   const { collapseIsland, activeTab, setActiveTab } = useAppStore();
 
-  const activeTodo = todos.find((t) => t.id === activeTodoId) || todos[0];
+  const activeTodo = todos.find((t) => t.id === activeTodoId) || todos.find((t) => !t.completed);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -26,19 +26,17 @@ export const IslandHeader: React.FC = () => {
           <span>{formatTime(timeLeft)}</span>
           {mode !== 'focus' && (
             <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              {mode}
+              {mode === 'shortBreak' ? 'Break' : 'Long Break'}
             </span>
           )}
         </div>
 
         <div className="w-[1px] h-3.5 bg-white/15" />
 
-        {activeTodo && (
-          <div className="flex items-center gap-1.5 text-xs font-medium text-white/80 max-w-[240px] truncate">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-            <span className="truncate">{activeTodo.title}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-1.5 text-xs font-medium text-white/80 max-w-[240px] truncate">
+          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${activeTodo ? 'bg-blue-400' : 'bg-white/30'}`} />
+          <span className="truncate">{activeTodo ? activeTodo.title : 'No active task'}</span>
+        </div>
       </div>
 
       {/* Right: Quick action controls */}

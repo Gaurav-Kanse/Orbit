@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { sendNotification, isPermissionGranted, requestPermission } from '@tauri-apps/plugin-notification';
+import { DBService } from '../services/database/db';
 
 export type TimerMode = 'focus' | 'shortBreak' | 'longBreak';
 
@@ -7,8 +9,10 @@ interface TimerState {
   timeLeft: number; // in seconds
   totalDuration: number; // in seconds
   isRunning: boolean;
+  startedAt: number | null; // Timestamp when session started
+  pausedAt: number | null; // Timestamp when session was paused
   completedSessions: number;
-  
+
   startTimer: () => void;
   pauseTimer: () => void;
   resetTimer: () => void;
@@ -29,10 +33,40 @@ export const useTimerStore = create<TimerState>((set, get) => ({
   timeLeft: DURATIONS.focus,
   totalDuration: DURATIONS.focus,
   isRunning: false,
+  startedAt: null,
+  pausedAt: null,
   completedSessions: 0,
 
-  startTimer: () => set({ isRunning: true }),
-  pauseTimer: () => set({ isRunning: false }),
+  startTimer: () => {
+    const { isRunning } = get();
+    if (isRunning) return;
+
+    const now = Date.now();
+    set({
+      isRunning: true,
+      startedAt: now,
+      pausedAt: null,
+    });
+  },
+
+  pauseTimer: () => {
+    const { isRunning, startedAt, timeLeft } = get();
+    if (!isRunning) return;
+
+    const now = Date.now();
+    let currentRemaining = timeLeft;
+    if (startedAt) {
+      const elapsedSeconds = Math.floor((now - startedAt) / 1000);
+      currentRemaining = Math.max(0, timeLeft - elapsedSeconds);
+    }
+
+    set({
+      isRunning: false,
+      startedAt: null,
+      pausedAt: now,
+      timeLeft: currentRemaining,
+    });
+  },
 
   resetTimer: () => {
     const mode = get().mode;
@@ -40,6 +74,8 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       timeLeft: DURATIONS[mode],
       totalDuration: DURATIONS[mode],
       isRunning: false,
+      startedAt: null,
+      pausedAt: null,
     });
   },
 
@@ -60,24 +96,47 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       timeLeft: DURATIONS[nextMode],
       totalDuration: DURATIONS[nextMode],
       isRunning: false,
+      startedAt: null,
+      pausedAt: null,
       completedSessions: nextSessions,
     });
   },
 
   tick: () => {
-    const { timeLeft, isRunning, mode, completedSessions } = get();
-    if (!isRunning) return;
+    const { isRunning, startedAt, timeLeft, mode, completedSessions, totalDuration } = get();
+    if (!isRunning || !startedAt) return;
 
-    if (timeLeft > 1) {
-      set({ timeLeft: timeLeft - 1 });
+    const now = Date.now();
+    const elapsedSeconds = Math.floor((now - startedAt) / 1000);
+    const calculatedRemaining = Math.max(0, timeLeft - elapsedSeconds);
+
+    if (calculatedRemaining > 0) {
+      // Smooth timestamp-based update
+      set({
+        timeLeft: calculatedRemaining,
+        startedAt: now, // Reset anchor point per tick for smooth countdown
+      });
     } else {
-      // Session finished
+      // --- TIMER COMPLETED ---
+      const sessionEndedAt = new Date().toISOString();
+      const sessionStartedAt = new Date(now - totalDuration * 1000).toISOString();
+
       let nextMode: TimerMode = 'focus';
       let nextSessions = completedSessions;
 
       if (mode === 'focus') {
         nextSessions += 1;
         nextMode = nextSessions % 4 === 0 ? 'longBreak' : 'shortBreak';
+
+        // Auto-save completed focus session to SQLite
+        DBService.saveFocusSession({
+          id: Date.now().toString(),
+          mode: 'focus',
+          started_at: sessionStartedAt,
+          ended_at: sessionEndedAt,
+          duration: totalDuration,
+          completed: true,
+        }).catch((err) => console.warn('Error saving focus session:', err));
       } else {
         nextMode = 'focus';
       }
@@ -87,15 +146,31 @@ export const useTimerStore = create<TimerState>((set, get) => ({
         timeLeft: DURATIONS[nextMode],
         totalDuration: DURATIONS[nextMode],
         isRunning: false,
+        startedAt: null,
+        pausedAt: null,
         completedSessions: nextSessions,
       });
 
-      // Desktop notification trigger when available
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification(mode === 'focus' ? 'Focus Session Completed!' : 'Break Time Finished!', {
-          body: mode === 'focus' ? 'Great work! Take a short break.' : 'Ready to focus again?',
-        });
-      }
+      // Fire Native Linux Desktop Notification
+      const title = mode === 'focus' ? 'Focus Session Complete!' : 'Break Time Complete!';
+      const body = mode === 'focus' ? 'Great focus work! Take a break.' : 'Ready for your next focus session?';
+
+      (async () => {
+        try {
+          let granted = await isPermissionGranted();
+          if (!granted) {
+            const permission = await requestPermission();
+            granted = permission === 'granted';
+          }
+          if (granted) {
+            sendNotification({ title, body });
+          }
+        } catch (_) {
+          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification(title, { body });
+          }
+        }
+      })();
     }
   },
 
@@ -105,17 +180,21 @@ export const useTimerStore = create<TimerState>((set, get) => ({
       timeLeft: DURATIONS[mode],
       totalDuration: DURATIONS[mode],
       isRunning: false,
+      startedAt: null,
+      pausedAt: null,
     });
   },
 
   setCustomDuration: (focusMin, shortBreakMin, longBreakMin) => {
-    DURATIONS.focus = focusMin * 60;
-    DURATIONS.shortBreak = shortBreakMin * 60;
-    DURATIONS.longBreak = longBreakMin * 60;
+    DURATIONS.focus = Math.max(1, focusMin) * 60;
+    DURATIONS.shortBreak = Math.max(1, shortBreakMin) * 60;
+    DURATIONS.longBreak = Math.max(1, longBreakMin) * 60;
     const mode = get().mode;
     set({
       timeLeft: DURATIONS[mode],
       totalDuration: DURATIONS[mode],
+      startedAt: null,
+      pausedAt: null,
     });
   },
 }));

@@ -1,17 +1,38 @@
-import { Sliders, Eye, Clock, Palette, Power, ChevronLeft } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sliders, Clock, Palette, Power, ChevronLeft, GitBranch, UserCheck } from 'lucide-react';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useTimerStore } from '../../stores/timerStore';
 import { useAppStore } from '../../stores/appStore';
 
 export const SettingsPanel: React.FC = () => {
   const { settings, updateSettings, resetSettings } = useSettingsStore();
+  const { setCustomDuration } = useTimerStore();
   const { setActiveTab } = useAppStore();
+
+  const [githubInput, setGithubInput] = useState(settings.githubUsername || '');
 
   const accentColors = ['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4'];
 
+  const handleSaveGithub = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateSettings({ githubUsername: githubInput.trim() });
+  };
+
+  const handleTimerDurationChange = (key: 'focusDuration' | 'shortBreakDuration' | 'longBreakDuration', value: number) => {
+    const newSettings = { [key]: value };
+    updateSettings(newSettings);
+
+    const f = key === 'focusDuration' ? value : settings.focusDuration;
+    const s = key === 'shortBreakDuration' ? value : settings.shortBreakDuration;
+    const l = key === 'longBreakDuration' ? value : settings.longBreakDuration;
+
+    setCustomDuration(f, s, l);
+  };
+
   return (
-    <div className="flex flex-col h-full bg-[#121216]/95 rounded-2xl border border-white/10 p-5 space-y-4 text-xs text-white overflow-y-auto max-h-[380px]">
+    <div className="flex flex-col h-full bg-[#0E0E12] rounded-2xl border border-white/10 p-4 space-y-3.5 text-xs text-white overflow-y-auto max-h-[380px]">
       {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-white/10">
+      <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
         <button
           onClick={() => setActiveTab('main')}
           className="flex items-center gap-1 text-white/60 hover:text-white transition-colors"
@@ -31,7 +52,32 @@ export const SettingsPanel: React.FC = () => {
         </button>
       </div>
 
-      {/* Section 1: Appearance & Accent */}
+      {/* GitHub Account Setup */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5 font-semibold text-white/80">
+          <GitBranch className="w-3.5 h-3.5 text-blue-400" />
+          <span>GitHub Account Setup</span>
+        </div>
+
+        <form onSubmit={handleSaveGithub} className="flex items-center gap-2 p-2.5 bg-white/[0.03] rounded-xl border border-white/5">
+          <input
+            type="text"
+            placeholder="GitHub username (e.g. torvalds)"
+            value={githubInput}
+            onChange={(e) => setGithubInput(e.target.value)}
+            className="flex-1 text-xs px-3 py-1.5 rounded-lg bg-black/50 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-blue-400"
+          />
+          <button
+            type="submit"
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-blue-600 font-semibold text-white hover:bg-blue-500 transition-colors"
+          >
+            <UserCheck className="w-3.5 h-3.5" />
+            <span>Connect</span>
+          </button>
+        </form>
+      </div>
+
+      {/* Appearance & Accent */}
       <div className="space-y-2">
         <div className="flex items-center gap-1.5 font-semibold text-white/80">
           <Palette className="w-3.5 h-3.5 text-blue-400" />
@@ -53,55 +99,9 @@ export const SettingsPanel: React.FC = () => {
             ))}
           </div>
         </div>
-
-        <div className="flex items-center justify-between p-2.5 bg-white/[0.03] rounded-xl border border-white/5">
-          <span>Widget Opacity</span>
-          <div className="flex items-center gap-2">
-            <input
-              type="range"
-              min="0.7"
-              max="1.0"
-              step="0.05"
-              value={settings.widgetOpacity}
-              onChange={(e) => updateSettings({ widgetOpacity: parseFloat(e.target.value) })}
-              className="accent-blue-500 w-24"
-            />
-            <span className="font-mono text-[11px] text-white/60">{Math.round(settings.widgetOpacity * 100)}%</span>
-          </div>
-        </div>
       </div>
 
-      {/* Section 2: Collapsed Pill Content */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-1.5 font-semibold text-white/80">
-          <Eye className="w-3.5 h-3.5 text-blue-400" />
-          <span>Collapsed Pill Displays</span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { key: 'collapsedShowTimer', label: 'Pomodoro Timer' },
-            { key: 'collapsedShowTask', label: 'Current Active Task' },
-            { key: 'collapsedShowStreak', label: 'Streak Counter' },
-            { key: 'collapsedShowGithub', label: 'Task Count' },
-          ].map(({ key, label }) => (
-            <label
-              key={key}
-              className="flex items-center gap-2 p-2 bg-white/[0.03] rounded-xl border border-white/5 cursor-pointer hover:bg-white/[0.06] transition-colors"
-            >
-              <input
-                type="checkbox"
-                checked={Boolean((settings as any)[key])}
-                onChange={(e) => updateSettings({ [key]: e.target.checked })}
-                className="accent-blue-500 rounded"
-              />
-              <span>{label}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* Section 3: Pomodoro Durations */}
+      {/* Pomodoro Durations */}
       <div className="space-y-2">
         <div className="flex items-center gap-1.5 font-semibold text-white/80">
           <Clock className="w-3.5 h-3.5 text-blue-400" />
@@ -116,7 +116,7 @@ export const SettingsPanel: React.FC = () => {
               min="1"
               max="120"
               value={settings.focusDuration}
-              onChange={(e) => updateSettings({ focusDuration: parseInt(e.target.value) || 25 })}
+              onChange={(e) => handleTimerDurationChange('focusDuration', parseInt(e.target.value) || 25)}
               className="bg-black/50 border border-white/10 rounded px-2 py-0.5 text-xs text-white font-mono text-center focus:outline-none focus:border-blue-400"
             />
           </div>
@@ -128,7 +128,7 @@ export const SettingsPanel: React.FC = () => {
               min="1"
               max="30"
               value={settings.shortBreakDuration}
-              onChange={(e) => updateSettings({ shortBreakDuration: parseInt(e.target.value) || 5 })}
+              onChange={(e) => handleTimerDurationChange('shortBreakDuration', parseInt(e.target.value) || 5)}
               className="bg-black/50 border border-white/10 rounded px-2 py-0.5 text-xs text-white font-mono text-center focus:outline-none focus:border-blue-400"
             />
           </div>
@@ -140,14 +140,14 @@ export const SettingsPanel: React.FC = () => {
               min="1"
               max="60"
               value={settings.longBreakDuration}
-              onChange={(e) => updateSettings({ longBreakDuration: parseInt(e.target.value) || 15 })}
+              onChange={(e) => handleTimerDurationChange('longBreakDuration', parseInt(e.target.value) || 15)}
               className="bg-black/50 border border-white/10 rounded px-2 py-0.5 text-xs text-white font-mono text-center focus:outline-none focus:border-blue-400"
             />
           </div>
         </div>
       </div>
 
-      {/* Section 4: Native Linux Options */}
+      {/* System & Startup */}
       <div className="space-y-2">
         <div className="flex items-center gap-1.5 font-semibold text-white/80">
           <Power className="w-3.5 h-3.5 text-blue-400" />

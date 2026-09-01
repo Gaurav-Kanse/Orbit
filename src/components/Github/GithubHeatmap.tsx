@@ -14,10 +14,14 @@ export const GithubHeatmap: React.FC = () => {
   useEffect(() => {
     if (settings.githubUsername) {
       loadContributions(settings.githubUsername);
+      setIsEditing(false);
+    } else {
+      setIsEditing(true);
     }
   }, [settings.githubUsername]);
 
   const loadContributions = async (username: string) => {
+    if (!username.trim()) return;
     setLoading(true);
     try {
       const result = await GithubService.fetchContributions(username);
@@ -39,23 +43,23 @@ export const GithubHeatmap: React.FC = () => {
   };
 
   const flatDays = data?.weeks.flatMap((w) => w.days) || [];
-  // Slice to last 60 days to fit matrix
+  // Slice to last 60 days to fit matrix perfectly
   const recentDays = flatDays.slice(-60);
 
   return (
-    <div className="flex flex-col h-full bg-[#0E0E12] rounded-2xl border border-white/10 p-3 space-y-2.5 select-none">
-      {/* Header with GitHub Username edit option */}
+    <div className="flex flex-col h-full bg-[#0E0E12] rounded-2xl border border-white/10 p-3 space-y-2 select-none">
+      {/* Header */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2 text-xs font-bold text-white/90">
           <GitBranch className="w-4 h-4 text-blue-400" />
           <span>GitHub</span>
-          {settings.githubUsername && (
+          {settings.githubUsername && !isEditing && (
             <span className="text-[10px] font-normal text-white/40">@{settings.githubUsername}</span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          {settings.githubUsername && (
+        <div className="flex items-center gap-1.5">
+          {settings.githubUsername && !isEditing && (
             <button
               onClick={() => loadContributions(settings.githubUsername)}
               disabled={loading}
@@ -69,7 +73,7 @@ export const GithubHeatmap: React.FC = () => {
           <button
             onClick={() => setIsEditing(!isEditing)}
             className="p-1 text-white/40 hover:text-blue-400 transition-colors"
-            title="Set GitHub Username"
+            title={isEditing ? 'Cancel' : 'Edit GitHub ID'}
           >
             <Edit2 className="w-3.5 h-3.5" />
           </button>
@@ -77,31 +81,34 @@ export const GithubHeatmap: React.FC = () => {
       </div>
 
       {isEditing ? (
-        <form onSubmit={handleSaveUsername} className="flex-1 flex flex-col items-center justify-center p-2 space-y-2">
-          <div className="text-[11px] font-semibold text-white/70 self-start">Set GitHub ID / Username:</div>
+        <form onSubmit={handleSaveUsername} className="flex-1 flex flex-col items-center justify-center p-3 space-y-2 bg-white/[0.02] rounded-xl border border-white/5">
+          <span className="text-xs font-medium text-white/80">Connect GitHub Account</span>
+          <span className="text-[10px] text-white/40 text-center">Enter your GitHub ID to display your live activity calendar</span>
           <input
             type="text"
-            placeholder="e.g. Gaurav-Kanse"
+            placeholder="GitHub username"
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
-            className="w-full text-xs px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
+            className="w-full text-xs px-3 py-1.5 rounded-lg bg-black/60 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
+            autoFocus
           />
           <button
             type="submit"
             className="w-full flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-lg bg-blue-600 font-semibold text-white hover:bg-blue-500 transition-colors"
           >
             <UserCheck className="w-3.5 h-3.5" />
-            <span>Save GitHub ID</span>
+            <span>Connect Account</span>
           </button>
         </form>
       ) : (
-        <>
-          <div className="text-[10px] text-white/40 px-1">
-            {data?.totalContributions || 0} contributions in the last year
+        <div className="flex-1 flex flex-col justify-between p-1">
+          <div className="flex items-center justify-between text-[10px] text-white/50 px-1">
+            <span>{loading ? 'Fetching contributions...' : `${data?.totalContributions || 0} contributions this year`}</span>
+            {data?.lastFetched && <span>Updated live</span>}
           </div>
 
-          {/* Grid Heatmap with REAL GitHub contributions */}
-          <div className="flex-1 flex items-center justify-center py-1">
+          {/* Grid Heatmap */}
+          <div className="flex-1 flex items-center justify-center my-1">
             <div className="grid grid-flow-col grid-rows-5 gap-[5px]">
               {Array.from({ length: 60 }).map((_, idx) => {
                 const day = recentDays[idx];
@@ -115,14 +122,14 @@ export const GithubHeatmap: React.FC = () => {
                 return (
                   <div
                     key={`gh-cell-${idx}`}
-                    className={`w-[16px] h-[16px] rounded-[5px] border transition-all ${bgClass}`}
-                    title={day ? `${day.date}: ${day.count} contributions` : 'No data'}
+                    className={`w-[15px] h-[15px] rounded-[4px] border transition-all ${bgClass}`}
+                    title={day ? `${day.date}: ${day.count} contributions` : 'No activity'}
                   />
                 );
               })}
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

@@ -1,110 +1,100 @@
 import { create } from 'zustand';
 import { Todo, Priority } from '../types';
+import { DBService } from '../services/database/db';
 
 interface TodoState {
   todos: Todo[];
   activeTodoId: string | null;
-  addTodo: (title: string, priority?: Priority, description?: string) => void;
-  toggleTodo: (id: string) => void;
-  deleteTodo: (id: string) => void;
-  updateTodo: (id: string, updates: Partial<Todo>) => void;
+  isLoading: boolean;
+
+  loadFromDB: () => Promise<void>;
+  addTodo: (title: string, priority?: Priority, description?: string) => Promise<void>;
+  toggleTodo: (id: string) => Promise<void>;
+  deleteTodo: (id: string) => Promise<void>;
+  updateTodo: (id: string, updates: Partial<Todo>) => Promise<void>;
   setActiveTodo: (id: string | null) => void;
   reorderTodos: (todos: Todo[]) => void;
 }
 
-const initialTodos: Todo[] = [
-  {
-    id: '1',
-    title: 'Finish client work',
-    description: 'Complete logo design and submit vector export',
-    completed: false,
-    priority: 'high',
-    created_at: new Date().toISOString(),
-    position: 0,
-  },
-  {
-    id: '2',
-    title: 'Study ML',
-    description: 'Read Neural Networks Chapter 4',
-    completed: true,
-    priority: 'medium',
-    created_at: new Date().toISOString(),
-    completed_at: new Date().toISOString(),
-    position: 1,
-  },
-  {
-    id: '3',
-    title: 'College assignment',
-    description: 'OS kernel scheduling essay',
-    completed: false,
-    priority: 'medium',
-    created_at: new Date().toISOString(),
-    position: 2,
-  },
-  {
-    id: '4',
-    title: 'Personal project',
-    description: 'Setup FocusIsland desktop app',
-    completed: true,
-    priority: 'low',
-    created_at: new Date().toISOString(),
-    completed_at: new Date().toISOString(),
-    position: 3,
-  },
-];
-
 export const useTodoStore = create<TodoState>((set, get) => ({
-  todos: initialTodos,
-  activeTodoId: '1',
+  todos: [],
+  activeTodoId: null,
+  isLoading: false,
 
-  addTodo: (title, priority = 'medium', description) => {
+  loadFromDB: async () => {
+    set({ isLoading: true });
+    try {
+      const loaded = await DBService.loadTodos();
+      set({
+        todos: loaded,
+        activeTodoId: loaded.length > 0 ? loaded.find((t) => !t.completed)?.id || loaded[0].id : null,
+      });
+    } catch (err) {
+      console.warn('Error loading todos from SQLite:', err);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  addTodo: async (title, priority = 'medium', description) => {
     if (!title.trim()) return;
     const newTodo: Todo = {
       id: Date.now().toString(),
       title: title.trim(),
-      description,
+      description: description?.trim() || undefined,
       completed: false,
       priority,
       created_at: new Date().toISOString(),
       position: get().todos.length,
     };
-    set((state) => {
-      const updated = [newTodo, ...state.todos];
-      return {
-        todos: updated,
-        activeTodoId: state.activeTodoId || newTodo.id,
-      };
-    });
+
+    set((state) => ({
+      todos: [newTodo, ...state.todos],
+      activeTodoId: state.activeTodoId || newTodo.id,
+    }));
+
+    await DBService.saveTodo(newTodo);
   },
 
-  toggleTodo: (id) => {
-    set((state) => {
-      const todos = state.todos.map((todo) => {
-        if (todo.id === id) {
-          const completed = !todo.completed;
-          return {
-            ...todo,
-            completed,
-            completed_at: completed ? new Date().toISOString() : null,
-          };
-        }
-        return todo;
-      });
-      return { todos };
-    });
+  toggleTodo: async (id) => {
+    const state = get();
+    const target = state.todos.find((t) => t.id === id);
+    if (!target) return;
+
+    const completed = !target.completed;
+    const updatedTodo: Todo = {
+      ...target,
+      completed,
+      completed_at: completed ? new Date().toISOString() : null,
+    };
+
+    set((s) => ({
+      todos: s.todos.map((t) => (t.id === id ? updatedTodo : t)),
+    }));
+
+    await DBService.saveTodo(updatedTodo);
   },
 
-  deleteTodo: (id) => {
+  deleteTodo: async (id) => {
     set((state) => ({
       todos: state.todos.filter((t) => t.id !== id),
       activeTodoId: state.activeTodoId === id ? null : state.activeTodoId,
     }));
+
+    await DBService.deleteTodo(id);
   },
 
-  updateTodo: (id, updates) => {
+  updateTodo: async (id, updates) => {
+    const target = get().todos.find((t) => t.id === id);
+    if (!target) return;
+
+    const updatedTodo: Todo = { ...target, ...updates };
+
     set((state) => ({
-      todos: state.todos.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+      todos: state.todos.map((t) => (t.id === id ? updatedTodo : t)),
     }));
+
+    await DBService.saveTodo(updatedTodo);
   },
 
   setActiveTodo: (id) => {
@@ -113,5 +103,8 @@ export const useTodoStore = create<TodoState>((set, get) => ({
 
   reorderTodos: (todos) => {
     set({ todos });
+    todos.forEach((t, idx) => {
+      DBService.saveTodo({ ...t, position: idx }).catch(() => {});
+    });
   },
 }));

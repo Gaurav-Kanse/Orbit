@@ -14,4 +14,9 @@ if ! nc -z localhost 1420 2>/dev/null && ! curl -s http://localhost:1420 >/dev/n
   sleep 2
 fi
 
-exec "$DIR/src-tauri/target/debug/orbit" "$@"
+# Prefer release binary for production; fall back to debug
+if [ -f "$DIR/src-tauri/target/release/orbit" ]; then
+  exec "$DIR/src-tauri/target/release/orbit" "$@"
+else
+  exec "$DIR/src-tauri/target/debug/orbit" "$@"
+fi

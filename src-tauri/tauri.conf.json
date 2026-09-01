@@ -14,7 +14,7 @@
       {
         "title": "Orbit",
         "width": 820,
-        "height": 400,
+        "height": 340,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,

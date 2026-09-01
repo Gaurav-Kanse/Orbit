@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import { AppSettings } from '../types';
+import { DBService } from '../services/database/db';
 
 interface SettingsState {
   settings: AppSettings;
+  loadFromDB: () => Promise<void>;
   updateSettings: (newSettings: Partial<AppSettings>) => void;
   resetSettings: () => void;
 }
@@ -14,8 +16,8 @@ const defaultSettings: AppSettings = {
   cornerRadius: 24,
   animationEnabled: true,
 
-  githubUsername: 'Gaurav-Kanse',
-  
+  githubUsername: '',
+
   collapsedShowTimer: true,
   collapsedShowTask: true,
   collapsedShowStreak: false,
@@ -39,9 +41,32 @@ const defaultSettings: AppSettings = {
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   settings: defaultSettings,
-  updateSettings: (newSettings) =>
+
+  loadFromDB: async () => {
+    try {
+      const loaded = await DBService.loadSettings();
+      if (Object.keys(loaded).length > 0) {
+        set((state) => ({
+          settings: { ...state.settings, ...loaded },
+        }));
+      }
+    } catch (err) {
+      console.warn('Error loading settings from SQLite:', err);
+    }
+  },
+
+  updateSettings: (newSettings) => {
     set((state) => ({
       settings: { ...state.settings, ...newSettings },
-    })),
+    }));
+
+    // Persist every setting change to SQLite
+    Object.entries(newSettings).forEach(([key, val]) => {
+      DBService.saveSetting(key, val).catch((err) =>
+        console.warn(`Error saving setting ${key}:`, err)
+      );
+    });
+  },
+
   resetSettings: () => set({ settings: defaultSettings }),
 }));

@@ -10,7 +10,7 @@ export default class OrbitExtension extends Extension {
         console.log('[Orbit Extension] Enabling extension in centerBox...');
 
         // State
-        this._timerText = '25:00';
+        this._timerText = '';
         this._taskText = 'Orbit';
 
         // Build interactive St.Button widget
@@ -23,7 +23,7 @@ export default class OrbitExtension extends Extension {
                 'background-color: rgba(10, 10, 14, 0.90)',
                 'border: 1px solid rgba(255, 255, 255, 0.12)',
                 'border-radius: 12px',
-                'padding: 3px 12px',
+                'padding: 3px 14px',
                 'border-bottom: 2px solid #3B82F6',
             ].join(';')
         });
@@ -35,26 +35,12 @@ export default class OrbitExtension extends Extension {
         });
 
         this._timerLabel = new St.Label({
-            text: `◷ ${this._timerText}`,
+            text: '◷ Orbit',
             y_align: Clutter.ActorAlign.CENTER,
             style: 'font-family: monospace; font-weight: bold; font-size: 11px; color: #60A5FA;'
         });
 
-        const sep = new St.Label({
-            text: '•',
-            y_align: Clutter.ActorAlign.CENTER,
-            style: 'font-size: 9px; color: rgba(255,255,255,0.35);'
-        });
-
-        this._taskLabel = new St.Label({
-            text: this._taskText,
-            y_align: Clutter.ActorAlign.CENTER,
-            style: 'font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.82);'
-        });
-
         box.add_child(this._timerLabel);
-        box.add_child(sep);
-        box.add_child(this._taskLabel);
         this._button.set_child(box);
 
         // Handle clicks & presses reliably on GNOME Wayland
@@ -70,8 +56,8 @@ export default class OrbitExtension extends Extension {
         // Insert directly into centerBox (true GNOME panel center)
         Main.panel._centerBox.insert_child_at_index(this._button, -1);
 
-        // Poll Tauri for timer/task state every 3 seconds
-        this._pollTimer = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 3, () => {
+        // Poll Tauri for timer/task state every 1 second
+        this._pollTimer = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 1, () => {
             this._fetchState();
             return GLib.SOURCE_CONTINUE;
         });
@@ -118,13 +104,16 @@ export default class OrbitExtension extends Extension {
                     const [, stdout] = p.communicate_utf8_finish(res);
                     if (stdout) {
                         const data = JSON.parse(stdout);
-                        if (data.timer && this._timerLabel) {
-                            this._timerText = data.timer;
-                            this._timerLabel.set_text(`◷ ${this._timerText}`);
+                        let labelText = '◷ Orbit';
+                        if (data.timer && data.task && data.task !== 'Orbit') {
+                            labelText = `◷ ${data.timer} • ${data.task}`;
+                        } else if (data.timer) {
+                            labelText = `◷ ${data.timer} • Orbit`;
+                        } else {
+                            labelText = `◷ Orbit`;
                         }
-                        if (data.task && this._taskLabel) {
-                            this._taskText = data.task;
-                            this._taskLabel.set_text(this._taskText);
+                        if (this._timerLabel) {
+                            this._timerLabel.set_text(labelText);
                         }
                     }
                 } catch (_) {}
@@ -143,7 +132,6 @@ export default class OrbitExtension extends Extension {
             this._button = null;
         }
         this._timerLabel = null;
-        this._taskLabel = null;
         console.log('[Orbit Extension] Extension disabled');
     }
 }

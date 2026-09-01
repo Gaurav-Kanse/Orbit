@@ -5,16 +5,32 @@ import { invoke } from '@tauri-apps/api/core';
 import { useAppStore } from '../../stores/appStore';
 import { IslandExpanded } from './IslandExpanded';
 import { useTimerStore } from '../../stores/timerStore';
+import { useTodoStore } from '../../stores/todoStore';
 
 export const Island: React.FC = () => {
   const { isExpanded, expandIsland, collapseIsland } = useAppStore();
-  const tick = useTimerStore((state) => state.tick);
+  const { timeLeft, isRunning, tick } = useTimerStore();
+  const { todos, activeTodoId } = useTodoStore();
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Sync live timer & active task title to Rust GNOME panel state endpoint
+  useEffect(() => {
+    const formatTime = (seconds: number) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const activeTodo = todos.find((t) => t.id === activeTodoId) || todos.find((t) => !t.completed);
+    const taskTitle = activeTodo ? activeTodo.title : 'Orbit';
+    const timerStr = formatTime(timeLeft);
+
+    invoke('update_panel_state', { timer: timerStr, task: taskTitle }).catch(() => {});
+  }, [timeLeft, activeTodoId, todos, isRunning]);
 
   // Listen for state changes emitted directly from Rust IPC handler
   useEffect(() => {
     const unlistenPromise = listen<boolean>('orbit-state-changed', (event) => {
-      console.log('[Orbit React] State changed:', event.payload);
       if (event.payload) {
         expandIsland();
       } else {
