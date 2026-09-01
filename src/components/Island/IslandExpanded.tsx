@@ -5,16 +5,14 @@ import { GithubHeatmap } from '../Github/GithubHeatmap';
 import { JourneyHeatmap } from '../Journey/JourneyHeatmap';
 import { SettingsPanel } from '../Settings/SettingsPanel';
 import { useAppStore } from '../../stores/appStore';
-import { useSettingsStore } from '../../stores/settingsStore';
 
 export const IslandExpanded: React.FC = () => {
   const { activeTab } = useAppStore();
-  const { settings } = useSettingsStore();
   const [heatmapTab, setHeatmapTab] = useState<'journey' | 'github'>('journey');
 
   if (activeTab === 'settings') {
     return (
-      <div className="w-full h-full flex flex-col bg-[#07070A]/95 backdrop-blur-2xl border border-white/10 rounded-b-2xl island-shadow overflow-hidden text-white">
+      <div className="w-full h-full flex flex-col bg-[#07070A] border border-white/10 rounded-b-2xl island-shadow overflow-hidden text-white">
         <IslandHeader />
         <div className="p-4 flex-1 overflow-hidden">
           <SettingsPanel />
@@ -24,10 +22,7 @@ export const IslandExpanded: React.FC = () => {
   }
 
   return (
-    <div
-      className="w-full h-full flex flex-col bg-[#07070A]/95 backdrop-blur-2xl border border-white/10 rounded-b-2xl island-shadow overflow-hidden text-white"
-      style={{ opacity: settings.widgetOpacity }}
-    >
+    <div className="w-full h-full flex flex-col bg-[#07070A] border border-white/10 rounded-b-2xl island-shadow overflow-hidden text-white">
       {/* Top Header Bar */}
       <IslandHeader />
 
@@ -66,7 +61,7 @@ export const IslandExpanded: React.FC = () => {
             </div>
           </div>
 
-          {/* Heatmap Card */}
+          {/* Active Heatmap View */}
           <div className="flex-1 overflow-hidden">
             {heatmapTab === 'journey' ? <JourneyHeatmap /> : <GithubHeatmap />}
           </div>
@@ -74,7 +69,7 @@ export const IslandExpanded: React.FC = () => {
       </div>
 
       {/* Sleek bottom glowing blue accent line matching reference screenshot */}
-      <div className="w-full h-[2px] bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-80" />
+      <div className="w-full h-[2px] bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-90" />
     </div>
   );
 };

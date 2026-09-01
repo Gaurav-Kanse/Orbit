@@ -42,7 +42,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo }) => {
           )}
         </button>
 
-        {/* Title and subtitle description */}
+        {/* Title and user description */}
         <div className="flex flex-col min-w-0">
           <span
             className={`text-xs font-semibold truncate transition-colors ${
@@ -51,9 +51,11 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo }) => {
           >
             {todo.title}
           </span>
-          <span className="text-[10px] text-white/40 truncate">
-            {todo.description || 'Create 10 Logos for Marc\'s company'}
-          </span>
+          {todo.description && todo.description.trim().length > 0 && (
+            <span className="text-[10px] text-white/40 truncate">
+              {todo.description}
+            </span>
+          )}
         </div>
       </div>
 

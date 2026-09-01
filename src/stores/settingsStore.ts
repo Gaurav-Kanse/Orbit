@@ -10,9 +10,11 @@ interface SettingsState {
 const defaultSettings: AppSettings = {
   theme: 'dark',
   accentColor: '#3B82F6',
-  widgetOpacity: 0.95,
+  widgetOpacity: 1.0,
   cornerRadius: 24,
   animationEnabled: true,
+
+  githubUsername: 'Gaurav-Kanse',
   
   collapsedShowTimer: true,
   collapsedShowTask: true,

@@ -53,6 +53,9 @@ export interface AppSettings {
   cornerRadius: number; // px border radius
   animationEnabled: boolean;
   
+  // GitHub Integration
+  githubUsername: string;
+
   // Collapsed view options
   collapsedShowTimer: boolean;
   collapsedShowTask: boolean;
