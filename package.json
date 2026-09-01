@@ -1,0 +1,39 @@
+{
+  "name": "orbit",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "orbit:dev": "flatpak run --command=bash --filesystem=host --socket=x11 --socket=wayland --socket=fallback-x11 org.freedesktop.Sdk -c \"export PATH=\\$HOME/.cargo/bin:\\$PATH; export PKG_CONFIG_PATH=/home/gaurav/.local/lib/pkgconfig:\\$PKG_CONFIG_PATH; export RUSTFLAGS=\\\"-L /home/gaurav/.local/lib/sys_symlinks\\\"; export LD_LIBRARY_PATH=\\\"/run/host/usr/lib64:/run/host/usr/lib64/pulseaudio:/usr/lib64:/usr/lib64/pulseaudio:\\$LD_LIBRARY_PATH\\\"; export GDK_BACKEND=wayland,x11; export WEBKIT_EXEC_PATH=/home/gaurav/.local/libexec/webkit2gtk-4.1; cd src-tauri && cargo run\"",
+    "orbit:build": "flatpak run --command=bash --filesystem=host --socket=x11 --socket=wayland --socket=fallback-x11 org.freedesktop.Sdk -c \"export PATH=\\$HOME/.cargo/bin:\\$PATH; export PKG_CONFIG_PATH=/home/gaurav/.local/lib/pkgconfig:\\$PKG_CONFIG_PATH; export RUSTFLAGS=\\\"-L /home/gaurav/.local/lib/sys_symlinks\\\"; export LD_LIBRARY_PATH=\\\"/run/host/usr/lib64:/run/host/usr/lib64/pulseaudio:/usr/lib64:/usr/lib64/pulseaudio:\\$LD_LIBRARY_PATH\\\"; export GDK_BACKEND=wayland,x11; export WEBKIT_EXEC_PATH=/home/gaurav/.local/libexec/webkit2gtk-4.1; cd src-tauri && cargo build --release\""
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-autostart": "^2.5.1",
+    "@tauri-apps/plugin-global-shortcut": "^2.3.2",
+    "@tauri-apps/plugin-notification": "^2.3.3",
+    "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-sql": "^2.4.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^13.1.1",
+    "lucide-react": "^1.37.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.3.3",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.4"
+  }
+}

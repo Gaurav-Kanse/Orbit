@@ -1,0 +1,8 @@
+{
+  "uuid": "orbit-panel@focusisland.org",
+  "name": "Orbit Panel Widget",
+  "description": "Dynamic Island Productivity Widget for GNOME Top Panel",
+  "shell-version": ["45", "46", "47", "48", "49", "50"],
+  "version": 2,
+  "url": ""
+}
