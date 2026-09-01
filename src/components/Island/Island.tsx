@@ -23,7 +23,9 @@ export const Island: React.FC = () => {
 
     const activeTodo = todos.find((t) => t.id === activeTodoId) || todos.find((t) => !t.completed);
     const taskTitle = activeTodo ? activeTodo.title : 'Orbit';
-    const timerStr = formatTime(timeLeft);
+
+    // ONLY display countdown timer on top panel when timer is actively running
+    const timerStr = isRunning ? formatTime(timeLeft) : '';
 
     invoke('update_panel_state', { timer: timerStr, task: taskTitle }).catch(() => {});
   }, [timeLeft, activeTodoId, todos, isRunning]);

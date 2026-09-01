@@ -1,44 +1,23 @@
 #!/bin/bash
-# Orbit GNOME Panel Extension Installer
+# Install and reload Orbit GNOME Shell Extension
+set -e
 
 EXT_UUID="orbit-panel@focusisland.org"
 EXT_DIR="$HOME/.local/share/gnome-shell/extensions/$EXT_UUID"
 
-echo "🛠  Installing Orbit GNOME Shell extension..."
+echo "🛠  Installing Orbit GNOME Shell extension ($EXT_UUID)..."
+
 mkdir -p "$EXT_DIR"
+cp -r gnome-extension/* "$EXT_DIR/"
 
-cp -f gnome-extension/metadata.json "$EXT_DIR/"
-cp -f gnome-extension/extension.js  "$EXT_DIR/"
+echo "🔄 Reloading extension in GNOME Shell..."
 
-echo " Copied extension files to $EXT_DIR"
+# Toggle off then on to force GNOME Shell to reload module from disk
+gnome-extensions disable "$EXT_UUID" 2>/dev/null || true
+sleep 1
+gnome-extensions enable "$EXT_UUID" 2>/dev/null || true
 
-# Mark as enabled in dconf (GSettings)
-if command -v gsettings >/dev/null 2>&1; then
-  CURRENT=$(gsettings get org.gnome.shell enabled-extensions 2>/dev/null || echo "[]")
-  if echo "$CURRENT" | grep -q "$EXT_UUID"; then
-    echo " Extension already listed as enabled in GSettings"
-  else
-    NEW=$(echo "$CURRENT" | sed "s/]$/, '$EXT_UUID']/" | sed "s/\[\]$/['$EXT_UUID']/")
-    gsettings set org.gnome.shell enabled-extensions "$NEW" 2>/dev/null || true
-    echo " Added $EXT_UUID to enabled-extensions in GSettings"
-  fi
-fi
+# Eval reload if supported
+busctl --user call org.gnome.Shell /org/gnome/Shell org.gnome.Shell Eval s "Main.ExtensionManager.reloadExtension(Main.ExtensionManager.lookup('$EXT_UUID'))" 2>/dev/null || true
 
-# Try enabling via gnome-extensions CLI
-if command -v gnome-extensions >/dev/null 2>&1; then
-  gnome-extensions enable "$EXT_UUID" 2>/dev/null && echo "✅ gnome-extensions enable OK" || true
-fi
-
-echo ""
-echo "  IMPORTANT: GNOME Shell must be restarted to load the extension."
-echo ""
-echo "   On X11/XWayland sessions, you can restart GNOME Shell with:"
-echo "   Alt + F2 → type 'r' → Enter"
-echo ""
-echo "   On pure Wayland: LOG OUT and LOG BACK IN to your GNOME session."
-echo ""
-echo "   After restarting, you should see the Orbit timer in the top panel"
-echo "   next to the clock."
-echo ""
-echo "   Then launch the Orbit backend:"
-echo "   ./run-orbit.sh"
+echo "✅ Orbit GNOME Shell extension installed and reloaded!"

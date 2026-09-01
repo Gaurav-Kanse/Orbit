@@ -73,9 +73,9 @@ fn update_panel_state(timer: String, task: String) -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Default initial state
+    // Default initial state: empty timer, Orbit title
     if let Ok(mut t) = PANEL_STATE_TIMER.lock() {
-        *t = "25:00".to_string();
+        *t = String::new();
     }
     if let Ok(mut tk) = PANEL_STATE_TASK.lock() {
         *tk = "Orbit".to_string();
@@ -132,7 +132,7 @@ pub fn run() {
                                 }
                                 "OK".to_string()
                             } else if path == "/state" {
-                                let timer_str = PANEL_STATE_TIMER.lock().map(|s| s.clone()).unwrap_or_else(|_| "25:00".into());
+                                let timer_str = PANEL_STATE_TIMER.lock().map(|s| s.clone()).unwrap_or_default();
                                 let task_str = PANEL_STATE_TASK.lock().map(|s| s.clone()).unwrap_or_else(|_| "Orbit".into());
                                 format!("{{ \"timer\": \"{timer_str}\", \"task\": \"{task_str}\" }}")
                             } else {

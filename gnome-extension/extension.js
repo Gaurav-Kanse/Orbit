@@ -44,14 +44,19 @@ export default class OrbitExtension extends Extension {
         this._button.set_child(box);
 
         // Handle clicks & presses reliably on GNOME Wayland
-        const onActivate = () => {
-            console.log('[Orbit Extension] Orbit button clicked/activated');
+        const onClicked = () => {
+            console.log('[Orbit Extension] Button clicked');
+            this._sendToggle();
+        };
+
+        const onPress = (_actor, _event) => {
+            console.log('[Orbit Extension] Button pressed');
             this._sendToggle();
             return Clutter.EVENT_STOP;
         };
 
-        this._button.connect('clicked', onActivate);
-        this._button.connect('button-press-event', onActivate);
+        this._button.connect('clicked', onClicked);
+        this._button.connect('button-press-event', onPress);
 
         // Insert directly into centerBox (true GNOME panel center)
         Main.panel._centerBox.insert_child_at_index(this._button, -1);
@@ -85,7 +90,11 @@ export default class OrbitExtension extends Extension {
             const url = `http://127.0.0.1:14210/toggle?bx=${btnX}&bw=${btnW}&by=${btnY}`;
             console.log(`[Orbit Extension] Sending toggle IPC request to ${url}`);
 
-            GLib.spawn_command_line_async(`curl -sf --max-time 1 "${url}"`);
+            const proc = new Gio.Subprocess({
+                argv: ['/usr/bin/curl', '-sf', '--max-time', '1', url],
+                flags: Gio.SubprocessFlags.NONE,
+            });
+            proc.init(null);
         } catch (e) {
             console.error('[Orbit Extension] Error in _sendToggle:', e);
         }
@@ -95,7 +104,7 @@ export default class OrbitExtension extends Extension {
         try {
             const url = 'http://127.0.0.1:14210/state';
             const proc = new Gio.Subprocess({
-                argv: ['curl', '-sf', '--max-time', '1', url],
+                argv: ['/usr/bin/curl', '-sf', '--max-time', '1', url],
                 flags: Gio.SubprocessFlags.STDOUT_PIPE,
             });
             proc.init(null);
@@ -105,13 +114,17 @@ export default class OrbitExtension extends Extension {
                     if (stdout) {
                         const data = JSON.parse(stdout);
                         let labelText = '◷ Orbit';
-                        if (data.timer && data.task && data.task !== 'Orbit') {
-                            labelText = `◷ ${data.timer} • ${data.task}`;
-                        } else if (data.timer) {
-                            labelText = `◷ ${data.timer} • Orbit`;
+                        const timer = data.timer ? data.timer.trim() : '';
+                        const task = data.task ? data.task.trim() : 'Orbit';
+
+                        if (timer && timer !== '25:00') {
+                            labelText = `◷ ${timer} • ${task}`;
+                        } else if (task && task !== 'Orbit') {
+                            labelText = `◷ ${task}`;
                         } else {
                             labelText = `◷ Orbit`;
                         }
+
                         if (this._timerLabel) {
                             this._timerLabel.set_text(labelText);
                         }
