@@ -10,7 +10,7 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set) => ({
-  isExpanded: false,
+  isExpanded: true,
   activeTab: 'main',
   toggleExpanded: () => set((state) => ({ isExpanded: !state.isExpanded })),
   expandIsland: () => set({ isExpanded: true }),

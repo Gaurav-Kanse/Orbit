@@ -1,4 +1,4 @@
-use tauri::{Manager, PhysicalPosition, Position, LogicalSize, Emitter};
+use tauri::{Manager, LogicalPosition, Position, LogicalSize, Emitter};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::io::{Read, Write};
@@ -10,30 +10,24 @@ static PANEL_STATE_TASK: Mutex<String> = Mutex::new(String::new());
 
 // Safely show the Tauri dashboard, positioned relative to the GNOME panel button center
 fn show_dashboard(window: &tauri::WebviewWindow, btn_x: i32, btn_w: i32) {
-    let dash_w = 820i32;
-    let dash_h = 340i32;
-    let _ = window.set_size(LogicalSize::new(dash_w as f64, dash_h as f64));
+    let dash_w = 820.0;
+    let dash_h = 340.0;
+    let _ = window.set_size(LogicalSize::new(dash_w, dash_h));
 
-    if let Ok(Some(monitor)) = window.primary_monitor() {
-        let monitor_size = monitor.size();
-        let scale = monitor.scale_factor();
-        let physical_dash_w = (dash_w as f64 * scale) as i32;
+    let x = if btn_x > 0 {
+        let center = btn_x as f64 + (btn_w as f64) / 2.0;
+        (center - dash_w / 2.0).max(10.0)
+    } else {
+        550.0
+    };
 
-        let x = if btn_x > 0 {
-            let center = (btn_x as f64 * scale) as i32 + ((btn_w as f64 * scale) as i32) / 2;
-            (center - physical_dash_w / 2).max(0)
-        } else {
-            (monitor_size.width as i32 - physical_dash_w) / 2
-        };
+    let y = 38.0; // Directly below ~36px GNOME top bar
 
-        let y = (38.0 * scale) as i32; // Directly below ~36px GNOME top bar
-
-        eprintln!("[Orbit Tauri] Showing dashboard at physical x={x}, y={y} (btn_x={btn_x}, btn_w={btn_w})");
-        let _ = window.set_position(Position::Physical(PhysicalPosition::new(x, y)));
-        let _ = window.show();
-        let _ = window.set_focus();
-        let _ = window.set_always_on_top(true);
-    }
+    eprintln!("[Orbit Tauri] Showing dashboard at logical x={x}, y={y} (btn_x={btn_x}, btn_w={btn_w})");
+    let _ = window.set_position(Position::Logical(LogicalPosition::new(x, y)));
+    let _ = window.show();
+    let _ = window.set_focus();
+    let _ = window.set_always_on_top(true);
 }
 
 fn hide_dashboard(window: &tauri::WebviewWindow) {

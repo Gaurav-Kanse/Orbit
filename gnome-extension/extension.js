@@ -95,8 +95,48 @@ export default class OrbitExtension extends Extension {
                 flags: Gio.SubprocessFlags.NONE,
             });
             proc.init(null);
+
+            // Check exit status; if curl failed (exit code != 0), auto-launch Orbit script!
+            proc.wait_async(null, (p, res) => {
+                try {
+                    const success = p.wait_finish(res);
+                    if (!success || !p.get_successful()) {
+                        console.log('[Orbit Extension] Orbit backend not running! Auto-launching...');
+                        this._launchOrbitBackend(btnX, btnW, btnY);
+                    }
+                } catch (err) {
+                    console.log('[Orbit Extension] Failed toggle call, auto-launching Orbit:', err);
+                    this._launchOrbitBackend(btnX, btnW, btnY);
+                }
+            });
         } catch (e) {
             console.error('[Orbit Extension] Error in _sendToggle:', e);
+            this._launchOrbitBackend(0, 200, 32);
+        }
+    }
+
+    _launchOrbitBackend(btnX, btnW, btnY) {
+        try {
+            const scriptPath = '/home/gaurav/Projects/AAA/run-orbit.sh';
+            console.log(`[Orbit Extension] Spawning ${scriptPath}...`);
+            const launcher = new Gio.Subprocess({
+                argv: ['/usr/bin/bash', scriptPath],
+                flags: Gio.SubprocessFlags.NONE,
+            });
+            launcher.init(null);
+
+            // Retry toggle after 2 seconds once app launches
+            GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 2, () => {
+                const url = `http://127.0.0.1:14210/toggle?bx=${btnX}&bw=${btnW}&by=${btnY}`;
+                const retryProc = new Gio.Subprocess({
+                    argv: ['/usr/bin/curl', '-sf', '--max-time', '1', url],
+                    flags: Gio.SubprocessFlags.NONE,
+                });
+                retryProc.init(null);
+                return GLib.SOURCE_REMOVE;
+            });
+        } catch (err) {
+            console.error('[Orbit Extension] Could not launch Orbit backend:', err);
         }
     }
 

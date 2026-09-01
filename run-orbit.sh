@@ -5,6 +5,10 @@ cd "$DIR"
 
 echo "🚀 Starting Orbit Dynamic Island Desktop Widget..."
 
+export DISPLAY="${DISPLAY:-:0}"
+export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+
 export LD_LIBRARY_PATH="/usr/lib64:/home/gaurav/.local/lib:/home/gaurav/.local/lib/sys_symlinks:/usr/lib64/pulseaudio:$LD_LIBRARY_PATH"
 export PKG_CONFIG_PATH="/usr/lib64/pkgconfig:/usr/share/pkgconfig:/home/gaurav/.local/lib/pkgconfig:$PKG_CONFIG_PATH"
 

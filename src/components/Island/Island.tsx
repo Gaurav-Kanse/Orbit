@@ -12,6 +12,7 @@ export const Island: React.FC = () => {
   const { timeLeft, isRunning, tick } = useTimerStore();
   const { todos, activeTodoId } = useTodoStore();
   const containerRef = useRef<HTMLDivElement>(null);
+  const isFirstRender = useRef(true);
 
   // Sync live timer & active task title to Rust GNOME panel state endpoint
   useEffect(() => {
@@ -33,6 +34,7 @@ export const Island: React.FC = () => {
   // Listen for state changes emitted directly from Rust IPC handler
   useEffect(() => {
     const unlistenPromise = listen<boolean>('orbit-state-changed', (event) => {
+      console.log('[Orbit React] State event from Rust:', event.payload);
       if (event.payload) {
         expandIsland();
       } else {
@@ -47,6 +49,10 @@ export const Island: React.FC = () => {
 
   // When React collapses (ESC / click outside), inform Rust to hide window
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     if (!isExpanded) {
       invoke('set_window_state', { expanded: false }).catch(() => {});
     }
