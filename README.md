@@ -4,7 +4,7 @@ A lightweight Linux productivity workspace built around the GNOME desktop.
 
 Orbit combines task management, Pomodoro focus sessions, reminders, productivity tracking, and GitHub activity into a single desktop interface accessible directly from the GNOME top panel.
 
-![Orbit Preview](assets/orbit-preview.png)
+
 
 ## Overview
 
