@@ -30,7 +30,7 @@ export class DBService {
       await this.initSchema();
       return this.db;
     } catch (err) {
-      console.warn('SQLite plugin not initialized (web/dev mode); using in-memory state fallback:', err);
+      console.warn('[Orbit DBService] SQLite plugin not initialized; using localStorage persistent fallback:', err);
       return null;
     }
   }
@@ -99,132 +99,229 @@ export class DBService {
 
   // --- TODOS ---
   static async saveTodo(todo: Todo) {
+    // 1. Dual persistence: LocalStorage backup
+    try {
+      const current = await this.loadTodos();
+      const idx = current.findIndex((t) => t.id === todo.id);
+      if (idx >= 0) {
+        current[idx] = todo;
+      } else {
+        current.unshift(todo);
+      }
+      localStorage.setItem('orbit_todos', JSON.stringify(current));
+    } catch (_) {}
+
+    // 2. Primary: SQLite
     const db = await this.getDB();
     if (!db) return;
-    await db.execute(
-      `INSERT OR REPLACE INTO todos (id, title, description, completed, priority, created_at, completed_at, due_date, position)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [
-        todo.id,
-        todo.title,
-        todo.description || null,
-        todo.completed ? 1 : 0,
-        todo.priority,
-        todo.created_at,
-        todo.completed_at || null,
-        todo.due_date || null,
-        todo.position,
-      ]
-    );
+    try {
+      await db.execute(
+        `INSERT OR REPLACE INTO todos (id, title, description, completed, priority, created_at, completed_at, due_date, position)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          todo.id,
+          todo.title,
+          todo.description || null,
+          todo.completed ? 1 : 0,
+          todo.priority,
+          todo.created_at,
+          todo.completed_at || null,
+          todo.due_date || null,
+          todo.position,
+        ]
+      );
+    } catch (_) {}
   }
 
   static async loadTodos(): Promise<Todo[]> {
-    const db = await this.getDB();
-    if (!db) return [];
-    const rows: any[] = await db.select('SELECT * FROM todos ORDER BY position ASC, created_at DESC');
-    return rows.map((r) => ({
-      ...r,
-      completed: Boolean(r.completed),
-    }));
+    let todos: Todo[] = [];
+
+    // 1. Try SQLite
+    try {
+      const db = await this.getDB();
+      if (db) {
+        const rows: any[] = await db.select('SELECT * FROM todos ORDER BY position ASC, created_at DESC');
+        todos = rows.map((r) => ({
+          ...r,
+          completed: Boolean(r.completed),
+        }));
+      }
+    } catch (_) {}
+
+    // 2. Fallback to LocalStorage if SQLite returned empty
+    if (todos.length === 0 && typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('orbit_todos');
+        if (stored) {
+          todos = JSON.parse(stored);
+        }
+      } catch (_) {}
+    }
+
+    return todos;
   }
 
   static async deleteTodo(id: string) {
+    // 1. LocalStorage backup
+    try {
+      const current = await this.loadTodos();
+      const updated = current.filter((t) => t.id !== id);
+      localStorage.setItem('orbit_todos', JSON.stringify(updated));
+    } catch (_) {}
+
+    // 2. SQLite
     const db = await this.getDB();
     if (!db) return;
-    await db.execute('DELETE FROM todos WHERE id = $1', [id]);
+    try {
+      await db.execute('DELETE FROM todos WHERE id = $1', [id]);
+    } catch (_) {}
   }
 
   // --- FOCUS SESSIONS ---
   static async saveFocusSession(session: FocusSessionRecord) {
+    try {
+      const stored = localStorage.getItem('orbit_focus_sessions') || '[]';
+      const parsed = JSON.parse(stored);
+      parsed.push(session);
+      localStorage.setItem('orbit_focus_sessions', JSON.stringify(parsed));
+    } catch (_) {}
+
     const db = await this.getDB();
     if (!db) return;
-    await db.execute(
-      `INSERT INTO focus_sessions (id, todo_id, mode, started_at, ended_at, duration, completed)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [
-        session.id,
-        session.todo_id || null,
-        session.mode,
-        session.started_at,
-        session.ended_at,
-        session.duration,
-        session.completed ? 1 : 0,
-      ]
-    );
-
-    // Update daily_activity record
-    const dateKey = session.ended_at.split('T')[0];
-    const minutes = Math.round(session.duration / 60);
-    await db.execute(
-      `INSERT INTO daily_activity (date, focus_minutes, focus_sessions)
-       VALUES ($1, $2, 1)
-       ON CONFLICT(date) DO UPDATE SET
-       focus_minutes = focus_minutes + $2,
-       focus_sessions = focus_sessions + 1`,
-      [dateKey, minutes]
-    );
-  }
-
-  static async loadFocusSessions(): Promise<FocusSessionRecord[]> {
-    const db = await this.getDB();
-    if (!db) return [];
-    return await db.select('SELECT * FROM focus_sessions ORDER BY ended_at DESC');
+    try {
+      await db.execute(
+        `INSERT INTO focus_sessions (id, todo_id, mode, started_at, ended_at, duration, completed)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          session.id,
+          session.todo_id || null,
+          session.mode,
+          session.started_at,
+          session.ended_at,
+          session.duration,
+          session.completed ? 1 : 0,
+        ]
+      );
+    } catch (_) {}
   }
 
   // --- REMINDERS ---
   static async saveReminder(reminder: ReminderItem) {
+    try {
+      const current = await this.loadReminders();
+      const idx = current.findIndex((r) => r.id === reminder.id);
+      if (idx >= 0) {
+        current[idx] = reminder;
+      } else {
+        current.push(reminder);
+      }
+      localStorage.setItem('orbit_reminders', JSON.stringify(current));
+    } catch (_) {}
+
     const db = await this.getDB();
     if (!db) return;
-    await db.execute(
-      `INSERT OR REPLACE INTO reminders (id, title, description, scheduled_at, completed, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [
-        reminder.id,
-        reminder.title,
-        reminder.description || null,
-        reminder.scheduled_at,
-        reminder.completed ? 1 : 0,
-        reminder.created_at,
-      ]
-    );
+    try {
+      await db.execute(
+        `INSERT OR REPLACE INTO reminders (id, title, description, scheduled_at, completed, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          reminder.id,
+          reminder.title,
+          reminder.description || null,
+          reminder.scheduled_at,
+          reminder.completed ? 1 : 0,
+          reminder.created_at,
+        ]
+      );
+    } catch (_) {}
   }
 
   static async loadReminders(): Promise<ReminderItem[]> {
-    const db = await this.getDB();
-    if (!db) return [];
-    const rows: any[] = await db.select('SELECT * FROM reminders ORDER BY scheduled_at ASC');
-    return rows.map((r) => ({
-      ...r,
-      completed: Boolean(r.completed),
-    }));
+    let reminders: ReminderItem[] = [];
+
+    try {
+      const db = await this.getDB();
+      if (db) {
+        const rows: any[] = await db.select('SELECT * FROM reminders ORDER BY scheduled_at ASC');
+        reminders = rows.map((r) => ({
+          ...r,
+          completed: Boolean(r.completed),
+        }));
+      }
+    } catch (_) {}
+
+    if (reminders.length === 0 && typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('orbit_reminders');
+        if (stored) {
+          reminders = JSON.parse(stored);
+        }
+      } catch (_) {}
+    }
+
+    return reminders;
   }
 
   static async deleteReminder(id: string) {
+    try {
+      const current = await this.loadReminders();
+      const updated = current.filter((r) => r.id !== id);
+      localStorage.setItem('orbit_reminders', JSON.stringify(updated));
+    } catch (_) {}
+
     const db = await this.getDB();
     if (!db) return;
-    await db.execute('DELETE FROM reminders WHERE id = $1', [id]);
+    try {
+      await db.execute('DELETE FROM reminders WHERE id = $1', [id]);
+    } catch (_) {}
   }
 
   // --- SETTINGS PERSISTENCE ---
   static async saveSetting(key: string, value: any) {
+    // 1. LocalStorage backup
+    try {
+      const current = await this.loadSettings();
+      (current as any)[key] = value;
+      localStorage.setItem('orbit_settings', JSON.stringify(current));
+    } catch (_) {}
+
+    // 2. SQLite
     const db = await this.getDB();
     if (!db) return;
-    await db.execute(
-      `INSERT OR REPLACE INTO app_settings (key, value) VALUES ($1, $2)`,
-      [key, JSON.stringify(value)]
-    );
+    try {
+      await db.execute(
+        `INSERT OR REPLACE INTO app_settings (key, value) VALUES ($1, $2)`,
+        [key, JSON.stringify(value)]
+      );
+    } catch (_) {}
   }
 
   static async loadSettings(): Promise<Partial<AppSettings>> {
-    const db = await this.getDB();
-    if (!db) return {};
-    const rows: any[] = await db.select('SELECT * FROM app_settings');
-    const settings: Record<string, any> = {};
-    rows.forEach((r) => {
+    let settings: Record<string, any> = {};
+
+    // 1. Try SQLite
+    try {
+      const db = await this.getDB();
+      if (db) {
+        const rows: any[] = await db.select('SELECT * FROM app_settings');
+        rows.forEach((r) => {
+          try {
+            settings[r.key] = JSON.parse(r.value);
+          } catch (_) {}
+        });
+      }
+    } catch (_) {}
+
+    // 2. Fallback to LocalStorage if SQLite returned empty
+    if (Object.keys(settings).length === 0 && typeof window !== 'undefined') {
       try {
-        settings[r.key] = JSON.parse(r.value);
+        const stored = localStorage.getItem('orbit_settings');
+        if (stored) {
+          settings = JSON.parse(stored);
+        }
       } catch (_) {}
-    });
+    }
+
     return settings as Partial<AppSettings>;
   }
 }
