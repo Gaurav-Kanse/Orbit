@@ -1,8 +1,9 @@
+import { invoke } from '@tauri-apps/api/core';
 import { ContributionWeek, ContributionDay, GithubUserData } from '../../types';
 
 export class GithubService {
   /**
-   * Fetches real contribution data for any public GitHub username.
+   * Fetches real GitHub contribution HTML using native Rust IPC command (bypassing CORS 100%).
    */
   static async fetchContributions(username: string): Promise<GithubUserData> {
     if (!username || !username.trim()) {
@@ -10,21 +11,29 @@ export class GithubService {
     }
 
     const cleanUsername = username.trim();
+    let html = '';
 
-    // 1. Primary: Fetch native GitHub contributions HTML
+    // 1. Primary: Invoke native Rust command (No CORS restriction)
     try {
-      const res = await fetch(`https://github.com/users/${cleanUsername}/contributions`, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',
-        },
-      });
+      html = await invoke<string>('fetch_github_contributions', { username: cleanUsername });
+    } catch (err) {
+      console.warn('[Orbit GithubService] Tauri invoke failed, falling back to direct web fetch:', err);
+      try {
+        const res = await fetch(`https://github.com/users/${cleanUsername}/contributions`, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)' },
+        });
+        if (res.ok) {
+          html = await res.text();
+        }
+      } catch (_) {}
+    }
 
-      if (res.ok) {
-        const html = await res.text();
+    if (html) {
+      try {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
 
-        // Extract total count from h2 (e.g. "198 contributions in the last year")
+        // Extract total count from H2 header
         let totalContributions = 0;
         const h2Text = doc.querySelector('h2')?.textContent || '';
         const match = h2Text.match(/([\d,]+)\s+contributions/i);
@@ -41,7 +50,6 @@ export class GithubService {
           const countMatch = text.match(/(\d+)\s+contribution/i);
           const count = countMatch ? parseInt(countMatch[1], 10) : 0;
 
-          // Find corresponding td/rect by id
           if (forId) {
             const el = doc.getElementById(forId);
             const date = el?.getAttribute('data-date');
@@ -91,93 +99,10 @@ export class GithubService {
             lastFetched: new Date().toISOString(),
           };
         }
+      } catch (parseErr) {
+        console.error('[Orbit GithubService] HTML parsing error:', parseErr);
       }
-    } catch (err) {
-      console.warn('[Orbit GithubService] Native GitHub fetch failed, trying API fallback:', err);
     }
-
-    // 2. Secondary: Vercel GitHub Contributions API
-    try {
-      const res = await fetch(`https://github-contributions.vercel.app/api/v1/${cleanUsername}`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json && Array.isArray(json.years)) {
-          let totalAllYears = 0;
-          json.years.forEach((y: any) => {
-            totalAllYears += y.total || 0;
-          });
-
-          const rawDays: any[] = json.years[0]?.contributions || [];
-          let totalCurrent = 0;
-          const daysList: ContributionDay[] = rawDays.map((d: any) => {
-            const count = d.count || 0;
-            totalCurrent += count;
-            const level = (d.intensity ? parseInt(d.intensity, 10) : count > 8 ? 4 : count > 4 ? 3 : count > 2 ? 2 : count > 0 ? 1 : 0) as 0 | 1 | 2 | 3 | 4;
-            return {
-              date: d.date,
-              count,
-              level,
-            };
-          });
-
-          const weeks: ContributionWeek[] = [];
-          for (let i = 0; i < daysList.length; i += 7) {
-            weeks.push({ days: daysList.slice(i, i + 7) });
-          }
-
-          return {
-            username: cleanUsername,
-            avatarUrl: `https://github.com/${cleanUsername}.png`,
-            totalContributions: Math.max(totalAllYears, totalCurrent),
-            weeks,
-            lastFetched: new Date().toISOString(),
-          };
-        }
-      }
-    } catch (_) {}
-
-    // 3. Fallback: GitHub REST Events API
-    try {
-      const eventsRes = await fetch(`https://api.github.com/users/${cleanUsername}/events`);
-      if (eventsRes.ok) {
-        const events = await eventsRes.json();
-        const countsByDate: Record<string, number> = {};
-
-        events.forEach((evt: any) => {
-          if (evt.created_at) {
-            const date = evt.created_at.split('T')[0];
-            countsByDate[date] = (countsByDate[date] || 0) + 1;
-          }
-        });
-
-        const today = new Date();
-        const daysList: ContributionDay[] = [];
-        let total = 0;
-
-        for (let i = 364; i >= 0; i--) {
-          const d = new Date(today);
-          d.setDate(d.getDate() - i);
-          const dateStr = d.toISOString().split('T')[0];
-          const count = countsByDate[dateStr] || 0;
-          total += count;
-          const level = (count >= 5 ? 4 : count >= 3 ? 3 : count >= 2 ? 2 : count >= 1 ? 1 : 0) as 0 | 1 | 2 | 3 | 4;
-          daysList.push({ date: dateStr, count, level });
-        }
-
-        const weeks: ContributionWeek[] = [];
-        for (let i = 0; i < daysList.length; i += 7) {
-          weeks.push({ days: daysList.slice(i, i + 7) });
-        }
-
-        return {
-          username: cleanUsername,
-          avatarUrl: `https://github.com/${cleanUsername}.png`,
-          totalContributions: total,
-          weeks,
-          lastFetched: new Date().toISOString(),
-        };
-      }
-    } catch (_) {}
 
     return this.getEmptyUserData(cleanUsername);
   }

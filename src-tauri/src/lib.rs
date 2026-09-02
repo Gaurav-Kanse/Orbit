@@ -65,6 +65,33 @@ fn update_panel_state(timer: String, task: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn fetch_github_contributions(username: String) -> Result<String, String> {
+    let clean = username.trim();
+    if clean.is_empty() {
+        return Err("Username cannot be empty".into());
+    }
+
+    let url = format!("https://github.com/users/{}/contributions", clean);
+    let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let res = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Network error: {}", e))?;
+
+    if !res.status().is_success() {
+        return Err(format!("GitHub user '{}' not found (HTTP {})", clean, res.status()));
+    }
+
+    let html = res.text().await.map_err(|e| e.to_string())?;
+    Ok(html)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Default initial state: empty timer, Orbit title
@@ -145,7 +172,7 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![set_window_state, update_panel_state])
+        .invoke_handler(tauri::generate_handler![set_window_state, update_panel_state, fetch_github_contributions])
         .run(tauri::generate_context!())
         .expect("error while running Orbit application");
 }
