@@ -1,121 +1,146 @@
-# Orbit
+# 🪐 Orbit
 
-A lightweight Linux productivity workspace built around the GNOME desktop.
+> **Minimalist Desktop Productivity Dashboard & Top-Bar Panel for GNOME**
 
-Orbit combines task management, Pomodoro focus sessions, reminders, productivity tracking, and GitHub activity into a single desktop interface accessible directly from the GNOME top panel.
+Orbit is a fast, keyboard-friendly desktop productivity suite built specifically for Linux (GNOME Desktop). It lives directly underneath your GNOME top bar center panel, providing instant access to your daily tasks, Pomodoro focus timer, GitHub contribution graph, and scheduled reminders.
 
+---
 
+## ✨ Features
 
-## Overview
+### 📋 Task Management
+- Quick inline task creation and completion with priority tags.
+- Persistent local SQLite database storage across restarts.
+- Clean visual status indicators and instant keyboard interaction.
 
-Orbit is designed to keep productivity tools available without requiring a separate full-screen application.
+### ⏱️ Pomodoro Focus Timer
+- Integrated focus timer with configurable focus/break intervals.
+- Live status sync directly to the GNOME Shell top panel.
+- Native desktop notifications on session completions.
 
-The application runs as a Tauri desktop app with a React and TypeScript frontend, while a GNOME Shell extension provides the top-panel integration. The panel displays the current focus timer and active task and can be used to open the main Orbit workspace.
+### 🟩 GitHub Contribution Graph
+- Displays your complete 52-week (365 days) GitHub contribution graph.
+- Native Rust CORS-bypass fetching (no API token required for public profiles).
+- Visual intensity streak mapping.
 
-The goal is simple: keep the tools needed for focused work close to the desktop without adding unnecessary complexity.
+### ⏰ Smart Reminders & Journey Streak
+- Timestamped scheduled desktop reminders.
+- Activity heatmaps tracking total daily productivity score.
 
-## Features
+### ⚡ GNOME Top-Bar Integration
+- Anchors directly underneath GNOME top bar center clock button.
+- Fast toggle via top bar panel icon or HTTP REST IPC (`http://127.0.0.1:14210`).
 
-### Task Management
+---
 
-- Create and manage tasks
-- Task descriptions and priorities
-- Mark tasks as completed
-- Edit and delete tasks
-- Reorder tasks
-- Persistent local storage
-
-### Focus Timer
-
-Orbit includes a built-in Pomodoro workflow.
-
-- 25-minute focus sessions by default
-- 5-minute short breaks
-- 15-minute long breaks
-- Automatic transition between focus and break sessions
-- Long break after every fourth completed focus session
-- Completed focus sessions are tracked
-- Desktop notifications when sessions finish
-- Configurable timer durations
-
-### Reminders
-
-Create desktop reminders directly from Orbit.
-
-- Custom reminder titles
-- Date and time scheduling
-- Completion tracking
-- Delete reminders
-- Native desktop notifications
-
-### Journey Streak
-
-Orbit tracks productivity activity locally and visualizes it through a contribution-style heatmap.
-
-Activity is calculated from:
-
-- Completed tasks
-- Completed focus sessions
-- Recent activity history
-
-The dashboard also calculates the current consecutive activity streak.
-
-### GitHub Integration
-
-Orbit can display a user's public GitHub contribution activity.
-
-Enter a GitHub username to load:
-
-- Contribution history
-- Total contributions over the last year
-- 52-week contribution calendar
-- Contribution intensity visualization
-
-No GitHub authentication token is required for the current public contribution view.
-
-### GNOME Panel Integration
-
-Orbit integrates directly with the GNOME Shell top panel.
-
-The panel widget provides:
-
-- Current focus timer
-- Active task
-- Quick access to the Orbit workspace
-- Live timer/task state
-
-The GNOME extension communicates with the Tauri application through a local HTTP IPC interface.
-
-## Architecture
+## 🏗️ Architecture
 
 ```text
-                    GNOME Shell
-                         |
-                         v
-              +---------------------+
-              |   Orbit Panel       |
-              |   GNOME Extension   |
-              +----------+----------+
-                         |
-                    Local HTTP IPC
-                         |
-                         v
-              +---------------------+
-              |   Tauri / Rust      |
-              |      Backend        |
-              +----------+----------+
-                         |
-                         v
-              +---------------------+
-              | React + TypeScript  |
-              |     Frontend        |
-              +----------+----------+
-                         |
-              +----------+----------+
-              |                     |
-              v                     v
-        Zustand Stores          SQLite
-              |                     |
-              +----------+----------+
-                         |
-                    Local Data
+                    GNOME Shell Top Bar
+                             |
+                             v
+                  +---------------------+
+                  |     Orbit Panel     |
+                  |   GNOME Extension   |
+                  +----------+----------+
+                             |
+                        Local HTTP IPC (127.0.0.1:14210)
+                             |
+                             v
+                  +---------------------+
+                  |    Tauri 2 / Rust   |
+                  |       Backend       |
+                  +----------+----------+
+                             |
+                             v
+                  +---------------------+
+                  |  React 19 + TS UI   |
+                  |  (Frameless Panel)  |
+                  +----------+----------+
+                             |
+                  +----------+----------+
+                  |                     |
+                  v                     v
+            Zustand Stores         SQLite DB
+```
+
+---
+
+## 🚀 Quick Installation
+
+Download the latest release binaries from the [**GitHub Releases Page**](https://github.com/Gaurav-Kanse/Qrbit/releases).
+
+### 1. Install the Orbit Application
+
+Choose the package format for your Linux distribution:
+
+#### **AppImage (Universal Linux)**
+```bash
+chmod +x Orbit_0.1.0_amd64.AppImage
+./Orbit_0.1.0_amd64.AppImage
+```
+
+#### **Debian / Ubuntu (.deb)**
+```bash
+sudo dpkg -i Orbit_0.1.0_amd64.deb
+```
+
+#### **Fedora / RHEL / openSUSE (.rpm)**
+```bash
+sudo rpm -i Orbit-0.1.0-1.x86_64.rpm
+```
+
+---
+
+### 2. Install GNOME Shell Extension
+
+To enable the top bar panel toggle:
+
+#### **Automated Setup**
+Clone the repository and run the installer script:
+```bash
+git clone https://github.com/Gaurav-Kanse/Qrbit.git
+cd Qrbit
+chmod +x install-extension.sh
+./install-extension.sh
+```
+
+#### **Manual Setup**
+1. Download `orbit-panel@focusisland.org.zip` from the [Releases Page](https://github.com/Gaurav-Kanse/Qrbit/releases).
+2. Extract the archive into:
+   `~/.local/share/gnome-shell/extensions/orbit-panel@focusisland.org/`
+3. Enable the extension:
+   ```bash
+   gnome-extensions enable orbit-panel@focusisland.org
+   ```
+
+---
+
+## 🛠️ Building from Source
+
+### Prerequisites
+- Node.js >= 18
+- Rust toolchain (`rustc`, `cargo`)
+- GTK3 and WebKitGTK 4.1 development files (`libgtk-3-dev`, `libwebkit2gtk-4.1-dev`)
+
+### Development & Build
+```bash
+# 1. Clone repository
+git clone https://github.com/Gaurav-Kanse/Qrbit.git
+cd Qrbit
+
+# 2. Install dependencies
+npm install
+
+# 3. Launch Orbit in dev mode
+./run-orbit.sh
+
+# 4. Package GNOME Extension
+./scripts/bundle-extension.sh
+```
+
+---
+
+## 📄 License
+
+MIT License © 2026 Gaurav Kanse
