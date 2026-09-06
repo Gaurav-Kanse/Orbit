@@ -139,6 +139,34 @@ npm install
 ./scripts/bundle-extension.sh
 ```
 
+## 🗑️ Uninstallation
+
+To remove Orbit and its top panel extension from your system:
+
+### 1. Remove GNOME Shell Extension
+```bash
+gnome-extensions disable orbit-panel@focusisland.org 2>/dev/null || true
+rm -rf ~/.local/share/gnome-shell/extensions/orbit-panel@focusisland.org
+```
+
+### 2. Uninstall Application Package
+
+- **AppImage**: Delete the `.AppImage` file you downloaded.
+- **Debian / Ubuntu (.deb)**:
+  ```bash
+  sudo apt remove orbit
+  ```
+- **Fedora / RHEL (.rpm)**:
+  ```bash
+  sudo dnf remove orbit
+  ```
+
+### 3. Clear Saved Data & Settings (Optional)
+```bash
+rm -rf ~/.local/share/com.orbit.app
+rm -rf ~/.config/com.orbit.app
+```
+
 ---
 
 ## 📄 License
