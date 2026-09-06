@@ -1,4 +1,4 @@
-# 🪐 Orbit
+#  Orbit
 
 > **Minimalist Desktop Productivity Dashboard & Top-Bar Panel for GNOME**
 
@@ -6,34 +6,34 @@ Orbit is a fast, keyboard-friendly desktop productivity suite built specifically
 
 ---
 
-## ✨ Features
+##  Features
 
-### 📋 Task Management
+###  Task Management
 - Quick inline task creation and completion with priority tags.
 - Persistent local SQLite database storage across restarts.
 - Clean visual status indicators and instant keyboard interaction.
 
-### ⏱️ Pomodoro Focus Timer
+###  Pomodoro Focus Timer
 - Integrated focus timer with configurable focus/break intervals.
 - Live status sync directly to the GNOME Shell top panel.
 - Native desktop notifications on session completions.
 
-### 🟩 GitHub Contribution Graph
+###  GitHub Contribution Graph
 - Displays your complete 52-week (365 days) GitHub contribution graph.
 - Native Rust CORS-bypass fetching (no API token required for public profiles).
 - Visual intensity streak mapping.
 
-### ⏰ Smart Reminders & Journey Streak
+###  Smart Reminders & Journey Streak
 - Timestamped scheduled desktop reminders.
 - Activity heatmaps tracking total daily productivity score.
 
-### ⚡ GNOME Top-Bar Integration
+###  GNOME Top-Bar Integration
 - Anchors directly underneath GNOME top bar center clock button.
 - Fast toggle via top bar panel icon or HTTP REST IPC (`http://127.0.0.1:14210`).
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ```text
                     GNOME Shell Top Bar
@@ -66,7 +66,7 @@ Orbit is a fast, keyboard-friendly desktop productivity suite built specifically
 
 ---
 
-## 🚀 Quick Installation
+##  Quick Installation
 
 Download the latest release binaries from the [**GitHub Releases Page**](https://github.com/Gaurav-Kanse/Qrbit/releases).
 
@@ -116,7 +116,7 @@ chmod +x install-extension.sh
 
 ---
 
-## 🛠️ Building from Source
+##  Building from Source
 
 ### Prerequisites
 - Node.js >= 18
@@ -139,7 +139,7 @@ npm install
 ./scripts/bundle-extension.sh
 ```
 
-## 🗑️ Uninstallation
+##  Uninstallation
 
 To remove Orbit and its top panel extension from your system:
 
@@ -169,6 +169,6 @@ rm -rf ~/.config/com.orbit.app
 
 ---
 
-## 📄 License
+##  License
 
 MIT License © 2026 Gaurav Kanse
