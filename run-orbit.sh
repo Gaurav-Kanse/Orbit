@@ -26,4 +26,8 @@ if [ -f "$DIR/src-tauri/target/debug/orbit" ]; then
 elif [ -f "$DIR/src-tauri/target/release/orbit" ]; then
   echo "▶ Running release binary..."
   exec "$DIR/src-tauri/target/release/orbit" "$@"
+else
+  echo "▶ No pre-compiled binary found. Running in dev mode..."
+  exec npm run orbit:dev
 fi
+

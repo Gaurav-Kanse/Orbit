@@ -3,6 +3,8 @@ import { Island } from './components/Island/Island';
 import { useTodoStore } from './stores/todoStore';
 import { useReminderStore } from './stores/reminderStore';
 import { useSettingsStore } from './stores/settingsStore';
+import { register, unregister } from '@tauri-apps/plugin-global-shortcut';
+import { invoke } from '@tauri-apps/api/core';
 
 export function App() {
   const loadTodos = useTodoStore((state) => state.loadFromDB);
@@ -21,7 +23,27 @@ export function App() {
       checkReminders();
     }, 30000);
 
-    return () => clearInterval(reminderInterval);
+    // 3. Register global keyboard shortcuts for cross-platform access (Windows & Linux)
+    const shortcuts = ['CommandOrControl+Alt+O', 'Alt+Shift+O'];
+    const setupShortcuts = async () => {
+      try {
+        await register(shortcuts, (event) => {
+          if (event.state === 'Pressed') {
+            invoke('toggle_orbit').catch((err) => {
+              console.warn('[Orbit] Failed to toggle via shortcut:', err);
+            });
+          }
+        });
+      } catch (err) {
+        console.warn('[Orbit] Global shortcut setup notice:', err);
+      }
+    };
+    setupShortcuts();
+
+    return () => {
+      clearInterval(reminderInterval);
+      unregister(shortcuts).catch(() => {});
+    };
   }, [loadTodos, loadReminders, loadSettings, checkReminders]);
 
   return (

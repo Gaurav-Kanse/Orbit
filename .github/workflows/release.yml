@@ -6,10 +6,19 @@ on:
       - 'v*'
 
 jobs:
-  publish-tauri:
+  release:
     permissions:
       contents: write
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'ubuntu-22.04'
+            os: 'linux'
+          - platform: 'windows-latest'
+            os: 'windows'
+
+    runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,6 +33,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install Linux dependencies
+        if: matrix.os == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf zip
@@ -32,6 +42,7 @@ jobs:
         run: npm ci
 
       - name: Package GNOME Shell Extension
+        if: matrix.os == 'linux'
         run: |
           chmod +x scripts/bundle-extension.sh
           ./scripts/bundle-extension.sh
@@ -44,24 +55,27 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'Orbit ${{ github.ref_name }}'
           releaseBody: |
-            ## Orbit Productivity Dashboard for GNOME Desktop
+            ## Orbit Productivity Dashboard (Linux & Windows)
             
-            ### Package Downloads
-            - **AppImage**: Portable Linux executable (Works on Ubuntu, Fedora, Debian, Arch)
+            ### Linux Downloads:
+            - **AppImage**: Universal portable Linux executable
             - **Debian / Ubuntu**: `.deb` package
             - **Fedora / RHEL**: `.rpm` package
-            - **GNOME Extension**: `orbit-panel@focusisland.org.zip`
+            - **GNOME Shell Extension**: `orbit-panel@focusisland.org.zip`
 
-            ### Installation Instructions
-            1. Install the Orbit app package (`.deb`, `.rpm`, or run `.AppImage`).
-            2. Download `orbit-panel@focusisland.org.zip` and extract to `~/.local/share/gnome-shell/extensions/orbit-panel@focusisland.org`.
-            3. Enable extension via `gnome-extensions enable orbit-panel@focusisland.org`.
+            ### Windows Downloads:
+            - **Windows Installer**: `.msi` and `.exe` (NSIS setup installer)
+
+            ### Desktop Hotkeys & Controls:
+            - **Global Shortcut**: Press `Ctrl+Alt+O` or `Alt+Shift+O` anywhere to toggle Orbit.
+            - **System Tray**: Left-click tray icon to show/hide, right-click for quick menu.
+            - **GNOME Top Bar (Linux)**: Click the center panel indicator to toggle.
           releaseDraft: false
           prerelease: false
 
       - name: Upload GNOME Extension Zip to Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: matrix.os == 'linux' && startsWith(github.ref, 'refs/tags/')
         with:
           files: dist-release/orbit-panel@focusisland.org.zip
         env:

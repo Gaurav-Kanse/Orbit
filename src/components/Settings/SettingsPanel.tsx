@@ -172,7 +172,7 @@ export const SettingsPanel: React.FC = () => {
               onChange={(e) => updateSettings({ launchOnStartup: e.target.checked })}
               className="accent-blue-500 rounded"
             />
-            <span>Launch on Linux Startup</span>
+            <span>Launch on System Startup</span>
           </label>
         </div>
       </div>

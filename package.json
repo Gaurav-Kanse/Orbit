@@ -8,6 +8,10 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "orbit:win": "tauri dev",
+    "orbit:win:build": "tauri build",
     "orbit:dev": "flatpak run --command=bash --filesystem=host --socket=x11 --socket=wayland --socket=fallback-x11 org.freedesktop.Sdk -c \"export PATH=\\$HOME/.cargo/bin:\\$PATH; export PKG_CONFIG_PATH=/home/gaurav/.local/lib/pkgconfig:\\$PKG_CONFIG_PATH; export RUSTFLAGS=\\\"-L /home/gaurav/.local/lib/sys_symlinks\\\"; export LD_LIBRARY_PATH=\\\"/run/host/usr/lib64:/run/host/usr/lib64/pulseaudio:/usr/lib64:/usr/lib64/pulseaudio:\\$LD_LIBRARY_PATH\\\"; export GDK_BACKEND=wayland,x11; export WEBKIT_EXEC_PATH=/home/gaurav/.local/libexec/webkit2gtk-4.1; cd src-tauri && cargo run\"",
     "orbit:build": "flatpak run --command=bash --filesystem=host --socket=x11 --socket=wayland --socket=fallback-x11 org.freedesktop.Sdk -c \"export PATH=\\$HOME/.cargo/bin:\\$PATH; export PKG_CONFIG_PATH=/home/gaurav/.local/lib/pkgconfig:\\$PKG_CONFIG_PATH; export RUSTFLAGS=\\\"-L /home/gaurav/.local/lib/sys_symlinks\\\"; export LD_LIBRARY_PATH=\\\"/run/host/usr/lib64:/run/host/usr/lib64/pulseaudio:/usr/lib64:/usr/lib64/pulseaudio:\\$LD_LIBRARY_PATH\\\"; export GDK_BACKEND=wayland,x11; export WEBKIT_EXEC_PATH=/home/gaurav/.local/libexec/webkit2gtk-4.1; cd src-tauri && cargo build --release\""
   },
