@@ -48,12 +48,16 @@ jobs:
           ./scripts/bundle-extension.sh
 
       - name: Build Tauri App & Create Release
-        uses: tauri-apps/tauri-action@v2
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Orbit ${{ github.ref_name }}'
+          releaseDraft: false
+          prerelease: false
+          retryAttempts: 3
+          uploadPlainBinary: true
           releaseBody: |
             ## Orbit Productivity Dashboard (Linux & Windows)
             
@@ -70,8 +74,6 @@ jobs:
             - **Global Shortcut**: Press `Ctrl+Alt+O` or `Alt+Shift+O` anywhere to toggle Orbit.
             - **System Tray**: Left-click tray icon to show/hide, right-click for quick menu.
             - **GNOME Top Bar (Linux)**: Click the center panel indicator to toggle.
-          releaseDraft: false
-          prerelease: false
 
       - name: Upload GNOME Extension Zip to Release
         uses: softprops/action-gh-release@v2
