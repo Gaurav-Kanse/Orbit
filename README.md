@@ -69,7 +69,7 @@ Download the latest release binaries from the [**GitHub Releases Page**](https:/
 
 ### Windows
 
-1. Download `Orbit_0.1.0_x64-setup.exe` or `Orbit_0.1.0_x64_en-US.msi`.
+1. Download `Orbit_0.2.0_x64-setup.exe` or `Orbit_0.2.0_x64_en-US.msi`.
 2. Run the installer and launch **Orbit**.
 3. Press `Ctrl+Alt+O` or click the Orbit icon in your Windows System Tray to toggle the dashboard!
 
@@ -81,18 +81,18 @@ Choose the package format for your Linux distribution:
 
 #### **AppImage (Universal Linux)**
 ```bash
-chmod +x Orbit_0.1.0_amd64.AppImage
-./Orbit_0.1.0_amd64.AppImage
+chmod +x Orbit_0.2.0_amd64.AppImage
+./Orbit_0.2.0_amd64.AppImage
 ```
 
 #### **Debian / Ubuntu (.deb)**
 ```bash
-sudo dpkg -i Orbit_0.1.0_amd64.deb
+sudo dpkg -i Orbit_0.2.0_amd64.deb
 ```
 
 #### **Fedora / RHEL / openSUSE (.rpm)**
 ```bash
-sudo rpm -i Orbit-0.1.0-1.x86_64.rpm
+sudo rpm -i Orbit-0.2.0-1.x86_64.rpm
 ```
 
 #### **Optional: Install GNOME Shell Extension (for GNOME users)**
